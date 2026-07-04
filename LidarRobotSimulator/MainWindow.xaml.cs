@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using LidarRobotSimulator.Models;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -18,7 +19,9 @@ namespace LidarRobotSimulator
     {
         public MainWindow()
         {
-            InitializeComponent();
+            var map = new GridMap(10, 6);
+            map.GenerateSampleObstacles();
+            System.Diagnostics.Debug.WriteLine($"Карта {map.Width}x{map.Height} создана");
         }
     }
 }
