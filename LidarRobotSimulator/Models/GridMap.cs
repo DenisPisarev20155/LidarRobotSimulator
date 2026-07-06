@@ -38,6 +38,11 @@ namespace LidarRobotSimulator.Models
             return cell != null && !cell.IsObstacle;
         }
 
+        public bool IsInsideBounds(double x, double y)
+        {
+            return x >= 0 && x < Width && y >= 0 && y < Height;
+        }
+
         public void SetObstacle(int x, int y, bool value)
         {
             var cell = GetCell(x, y);
