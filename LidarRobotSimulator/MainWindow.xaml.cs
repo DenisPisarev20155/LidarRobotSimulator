@@ -31,6 +31,13 @@ namespace LidarRobotSimulator
 
             bool insideBounds = map.IsInsideBounds(robot.X, robot.Y);
             System.Diagnostics.Debug.WriteLine($"Робот внутри карты: {insideBounds}");
+
+            var lidar = new Lidar(10, 8);
+            var scanResult = lidar.Scan(map, robot.X, robot.Y, robot.Angle);
+            for (int i = 0; i < scanResult.Count; i++)
+            {
+                System.Diagnostics.Debug.WriteLine($"Луч {i}: расстояние {scanResult[i]:F2}");
+            }
         }
     }
 }
