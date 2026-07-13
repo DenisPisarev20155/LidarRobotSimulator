@@ -126,5 +126,33 @@ namespace LidarRobotSimulator
                 MainCanvas.Children.Add(line);
             }
         }
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            double oldX = robot.X;
+            double oldY = robot.Y;
+
+            switch (e.Key)
+            {
+                case Key.Up:
+                    robot.MoveForward();
+                    break;
+                case Key.Down:
+                    robot.MoveBackward();
+                    break;
+                case Key.Left:
+                    robot.TurnLeft();
+                    break;
+                case Key.Right:
+                    robot.TurnRight();
+                    break;
+            }
+
+            if (!map.IsInsideBounds(robot.X, robot.Y) || !map.IsFree((int)robot.X, (int)robot.Y))
+            {
+                robot.SetPosition(oldX, oldY);
+            }
+
+            DrawScene();
+        }
     }
 }
