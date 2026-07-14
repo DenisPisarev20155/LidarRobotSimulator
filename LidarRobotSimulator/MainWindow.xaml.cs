@@ -1,5 +1,6 @@
 ﻿using LidarRobotSimulator.Models;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,6 +22,7 @@ namespace LidarRobotSimulator
         private GridMap map;
         private Robot robot;
         private Lidar lidar;
+        private List<ScannedPoint> scannedPoints = new List<ScannedPoint>();
         private const int CellSize = 40;
 
         public MainWindow()
@@ -34,12 +36,43 @@ namespace LidarRobotSimulator
             DrawScene();
         }
 
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            double oldX = robot.X;
+            double oldY = robot.Y;
+
+            switch (e.Key)
+            {
+                case Key.Up:
+                    robot.MoveForward();
+                    break;
+                case Key.Down:
+                    robot.MoveBackward();
+                    break;
+                case Key.Left:
+                    robot.TurnLeft();
+                    break;
+                case Key.Right:
+                    robot.TurnRight();
+                    break;
+            }
+
+            if (!map.IsInsideBounds(robot.X, robot.Y) || !map.IsFree((int)robot.X, (int)robot.Y))
+            {
+                robot.SetPosition(oldX, oldY);
+            }
+
+            DrawScene();
+        }
+
         private void DrawScene()
         {
             MainCanvas.Children.Clear();
             DrawMap();
             DrawLidarRays();
+            DrawScannedPoints();
             DrawRobot();
+            UpdateScannedMap();
         }
 
         private void DrawMap()
@@ -126,33 +159,38 @@ namespace LidarRobotSimulator
                 MainCanvas.Children.Add(line);
             }
         }
-        private void Window_KeyDown(object sender, KeyEventArgs e)
+
+        private void DrawScannedPoints()
         {
-            double oldX = robot.X;
-            double oldY = robot.Y;
-
-            switch (e.Key)
+            foreach (var point in scannedPoints)
             {
-                case Key.Up:
-                    robot.MoveForward();
-                    break;
-                case Key.Down:
-                    robot.MoveBackward();
-                    break;
-                case Key.Left:
-                    robot.TurnLeft();
-                    break;
-                case Key.Right:
-                    robot.TurnRight();
-                    break;
-            }
+                var dot = new Ellipse
+                {
+                    Width = 4,
+                    Height = 4,
+                    Fill = Brushes.Green
+                };
 
-            if (!map.IsInsideBounds(robot.X, robot.Y) || !map.IsFree((int)robot.X, (int)robot.Y))
+                Canvas.SetLeft(dot, point.X * CellSize - 2);
+                Canvas.SetTop(dot, point.Y * CellSize - 2);
+                MainCanvas.Children.Add(dot);
+            }
+        }
+
+        private void UpdateScannedMap()
+        {
+            var newPoints = lidar.ScanPoints(map, robot.X, robot.Y, robot.Angle);
+
+            foreach (var point in newPoints)
             {
-                robot.SetPosition(oldX, oldY);
-            }
+                bool alreadyExists = scannedPoints.Exists(p =>
+                    Math.Abs(p.X - point.X) < 0.02 && Math.Abs(p.Y - point.Y) < 0.3);
 
-            DrawScene();
+                if (!alreadyExists)
+                {
+                    scannedPoints.Add(point);
+                }
+            }
         }
     }
 }
