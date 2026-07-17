@@ -23,6 +23,7 @@ namespace LidarRobotSimulator
         private Robot robot;
         private Lidar lidar;
         private List<ScannedPoint> scannedPoints = new List<ScannedPoint>();
+        private List<Point> trajectory = new List<Point>();
         private const int CellSize = 40;
 
         public MainWindow()
@@ -57,12 +58,36 @@ namespace LidarRobotSimulator
                     break;
             }
 
-            if (!map.IsInsideBounds(robot.X, robot.Y) || !map.IsFree((int)robot.X, (int)robot.Y))
+            if (CheckCollision(robot.X, robot.Y))
             {
                 robot.SetPosition(oldX, oldY);
             }
 
+            if (robot.X != oldX || robot.Y != oldY)
+            {
+                trajectory.Add(new Point(robot.X, robot.Y));
+            }
+
             DrawScene();
+        }
+
+        private bool CheckCollision(double x, double y)
+        {
+            double margin = 0.3;
+
+            double[] checkX = { x - margin, x + margin };
+            double[] checkY = { y - margin, y + margin };
+
+            foreach (var cx in checkX)
+            {
+                foreach (var cy in checkY)
+                {
+                    if (!map.IsInsideBounds(cx, cy) || !map.IsFree((int)cx, (int)cy))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private void DrawScene()
@@ -71,6 +96,7 @@ namespace LidarRobotSimulator
             DrawMap();
             DrawLidarRays();
             DrawScannedPoints();
+            DrawTrajectory();
             DrawRobot();
             UpdateScannedMap();
         }
@@ -190,6 +216,24 @@ namespace LidarRobotSimulator
                 {
                     scannedPoints.Add(point);
                 }
+            }
+        }
+
+        private void DrawTrajectory()
+        {
+            for (int i = 0; i < trajectory.Count - 1; i++)
+            {
+                var line = new Line
+                {
+                    X1 = trajectory[i].X * CellSize,
+                    Y1 = trajectory[i].Y * CellSize,
+                    X2 = trajectory[i + 1].X * CellSize,
+                    Y2 = trajectory[i + 1].Y * CellSize,
+                    Stroke = Brushes.Purple,
+                    StrokeThickness = 2
+                };
+
+                MainCanvas.Children.Add(line);
             }
         }
     }
