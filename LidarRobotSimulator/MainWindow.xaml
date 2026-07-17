@@ -5,8 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LidarRobotSimulator"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
-        KeyDown="Window_KeyDown">
-    <Canvas x:Name="MainCanvas" Background="White">
-    </Canvas>
+        Title="MainWindow" Height="500" Width="900"
+        PreviewKeyDown="Window_KeyDown">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Background="LightGray" Height="40">
+            <Button x:Name="PauseButton" Content="Пауза" Width="80" Margin="5" Click="PauseButton_Click" />
+            <Button x:Name="ResetButton" Content="Сброс" Width="80" Margin="5" Click="ResetButton_Click" />
+            <TextBlock Text="Скорость робота" VerticalAlignment="Center" Margin="15,0,5,0" />
+            <Slider x:Name="SpeedSlider" Width="150" Minimum="0.2" Maximum="2" Value="1" VerticalAlignment="Center"
+                    ValueChanged="SpeedSlider_ValueChanged" />
+            <TextBlock x:Name="SpeedLabel" Text="1.0" VerticalAlignment="Center" Margin="5,0,0,0" />
+        </StackPanel>
+
+        <Canvas x:Name="MainCanvas" Grid.Row="1" Background="White" />
+    </Grid>
 </Window>

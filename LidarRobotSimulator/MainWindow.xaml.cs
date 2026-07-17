@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -24,6 +25,7 @@ namespace LidarRobotSimulator
         private Lidar lidar;
         private List<ScannedPoint> scannedPoints = new List<ScannedPoint>();
         private List<Point> trajectory = new List<Point>();
+        private bool isPaused = false;
         private const int CellSize = 40;
 
         public MainWindow()
@@ -39,6 +41,9 @@ namespace LidarRobotSimulator
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
+            if (isPaused)
+                return;
+
             double oldX = robot.X;
             double oldY = robot.Y;
 
@@ -69,6 +74,8 @@ namespace LidarRobotSimulator
             }
 
             DrawScene();
+
+            e.Handled = true;
         }
 
         private bool CheckCollision(double x, double y)
@@ -234,6 +241,37 @@ namespace LidarRobotSimulator
                 };
 
                 MainCanvas.Children.Add(line);
+            }
+        }
+
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            isPaused = !isPaused;
+            PauseButton.Content = isPaused ? "Продолжить" : "Пауза";
+        }
+
+        private void ResetButton_Click(object sender, RoutedEventArgs e)
+        {
+            robot = new Robot(2, 2, 0);
+            scannedPoints.Clear();
+            trajectory.Clear();
+            trajectory.Add(new Point(robot.X, robot.Y));
+            isPaused = false;
+            PauseButton.Content = "Пауза";
+
+            DrawScene();
+        }
+
+        private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (robot != null)
+            {
+                robot.Speed = e.NewValue;
+            }
+
+            if (SpeedLabel != null)
+            {
+                SpeedLabel.Text = e.NewValue.ToString("F1");
             }
         }
     }
