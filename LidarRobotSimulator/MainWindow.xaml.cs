@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -24,9 +23,11 @@ namespace LidarRobotSimulator
         private Robot robot;
         private Lidar lidar;
         private List<ScannedPoint> scannedPoints = new List<ScannedPoint>();
+        private HashSet<(int, int)> scannedCells = new HashSet<(int, int)>();
         private List<Point> trajectory = new List<Point>();
-        private bool isPaused = false;
         private const int CellSize = 40;
+        private bool isPaused = false;
+        private bool mapDrawn = false;
 
         public MainWindow()
         {
@@ -34,7 +35,9 @@ namespace LidarRobotSimulator
 
             map = GridMap.LoadFromFile("Maps/map1.txt");
             robot = new Robot(2, 2, 0);
-            lidar = new Lidar(10, 36);
+            lidar = new Lidar(10, 72);
+
+            trajectory.Add(new Point(robot.X, robot.Y));
 
             DrawScene();
         }
@@ -80,7 +83,7 @@ namespace LidarRobotSimulator
 
         private bool CheckCollision(double x, double y)
         {
-            double margin = 0.3;
+            double margin = 0.4;
 
             double[] checkX = { x - margin, x + margin };
             double[] checkY = { y - margin, y + margin };
@@ -97,15 +100,64 @@ namespace LidarRobotSimulator
             return false;
         }
 
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            isPaused = !isPaused;
+            PauseButton.Content = isPaused ? "Продолжить" : "Пауза";
+        }
+
+        private void ResetButton_Click(object sender, RoutedEventArgs e)
+        {
+            robot = new Robot(2, 2, 0);
+            scannedPoints.Clear();
+            scannedCells.Clear();
+            trajectory.Clear();
+            trajectory.Add(new Point(robot.X, robot.Y));
+            isPaused = false;
+            PauseButton.Content = "Пауза";
+
+            DrawScene();
+        }
+
+        private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (robot != null)
+            {
+                robot.Speed = e.NewValue;
+            }
+
+            if (SpeedLabel != null)
+            {
+                SpeedLabel.Text = e.NewValue.ToString("F1");
+            }
+        }
+
         private void DrawScene()
         {
-            MainCanvas.Children.Clear();
-            DrawMap();
-            DrawLidarRays();
+            if (!mapDrawn)
+            {
+                DrawMap();
+                mapDrawn = true;
+            }
+
+            ClearDynamicElements();
             DrawScannedPoints();
             DrawTrajectory();
+            DrawLidarRays();
             DrawRobot();
             UpdateScannedMap();
+        }
+
+        private void ClearDynamicElements()
+        {
+            for (int i = MainCanvas.Children.Count - 1; i >= 0; i--)
+            {
+                var element = MainCanvas.Children[i];
+                if (element is Rectangle)
+                    continue;
+
+                MainCanvas.Children.Remove(element);
+            }
         }
 
         private void DrawMap()
@@ -134,34 +186,58 @@ namespace LidarRobotSimulator
         {
             double centerX = robot.X * CellSize;
             double centerY = robot.Y * CellSize;
-            double radius = CellSize / 3.0;
 
-            var ellipse = new Ellipse
+            double bodyWidth = CellSize * 0.87;
+            double bodyHeight = CellSize * 1.14;
+            double wheelWidth = CellSize * 0.14;
+            double wheelHeight = CellSize * 0.56;
+            double hubRadius = CellSize * 0.12;
+
+            var robotGroup = new Canvas
             {
-                Width = radius * 2,
-                Height = radius * 2,
-                Fill = Brushes.Blue
+                Width = bodyWidth,
+                Height = bodyHeight
             };
 
-            Canvas.SetLeft(ellipse, centerX - radius);
-            Canvas.SetTop(ellipse, centerY - radius);
-            MainCanvas.Children.Add(ellipse);
+            var wheelTopLeft = new Rectangle { Width = wheelWidth, Height = wheelHeight, Fill = Brushes.Black };
+            Canvas.SetLeft(wheelTopLeft, -wheelWidth / 2);
+            Canvas.SetTop(wheelTopLeft, -5);
+            robotGroup.Children.Add(wheelTopLeft);
 
-            double radians = robot.Angle * Math.PI / 180.0;
-            double lineEndX = centerX + Math.Cos(radians) * radius * 2;
-            double lineEndY = centerY + Math.Sin(radians) * radius * 2;
+            var wheelTopRight = new Rectangle { Width = wheelWidth, Height = wheelHeight, Fill = Brushes.Black };
+            Canvas.SetLeft(wheelTopRight, bodyWidth - wheelWidth / 2);
+            Canvas.SetTop(wheelTopRight, -5);
+            robotGroup.Children.Add(wheelTopRight);
 
-            var directionLine = new Line
+            var body = new Rectangle
             {
-                X1 = centerX,
-                Y1 = centerY,
-                X2 = lineEndX,
-                Y2 = lineEndY,
-                Stroke = Brushes.Red,
-                StrokeThickness = 2
+                Width = bodyWidth,
+                Height = bodyHeight,
+                Fill = Brushes.SteelBlue,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1
             };
+            Canvas.SetLeft(body, 0);
+            Canvas.SetTop(body, 0);
+            robotGroup.Children.Add(body);
 
-            MainCanvas.Children.Add(directionLine);
+            var hubFront = new Ellipse { Width = hubRadius * 2, Height = hubRadius * 2, Fill = Brushes.DarkGray, Stroke = Brushes.Black, StrokeThickness = 1 };
+            Canvas.SetLeft(hubFront, bodyWidth / 2 - hubRadius);
+            Canvas.SetTop(hubFront, bodyHeight * 0.25 - hubRadius);
+            robotGroup.Children.Add(hubFront);
+
+            var hubBack = new Ellipse { Width = hubRadius * 2, Height = hubRadius * 2, Fill = Brushes.DarkGray, Stroke = Brushes.Black, StrokeThickness = 1 };
+            Canvas.SetLeft(hubBack, bodyWidth / 2 - hubRadius);
+            Canvas.SetTop(hubBack, bodyHeight * 0.7 - hubRadius);
+            robotGroup.Children.Add(hubBack);
+
+            robotGroup.RenderTransformOrigin = new Point(0.5, 0.5);
+            robotGroup.RenderTransform = new RotateTransform(robot.Angle + 90);
+
+            Canvas.SetLeft(robotGroup, centerX - bodyWidth / 2);
+            Canvas.SetTop(robotGroup, centerY - bodyHeight / 2);
+
+            MainCanvas.Children.Add(robotGroup);
         }
 
         private void DrawLidarRays()
@@ -193,6 +269,22 @@ namespace LidarRobotSimulator
             }
         }
 
+        private void UpdateScannedMap()
+        {
+            var newPoints = lidar.ScanPoints(map, robot.X, robot.Y, robot.Angle);
+
+            foreach (var point in newPoints)
+            {
+                var key = ((int)(point.X * 10), (int)(point.Y * 10));
+
+                if (!scannedCells.Contains(key))
+                {
+                    scannedCells.Add(key);
+                    scannedPoints.Add(point);
+                }
+            }
+        }
+
         private void DrawScannedPoints()
         {
             foreach (var point in scannedPoints)
@@ -207,22 +299,6 @@ namespace LidarRobotSimulator
                 Canvas.SetLeft(dot, point.X * CellSize - 2);
                 Canvas.SetTop(dot, point.Y * CellSize - 2);
                 MainCanvas.Children.Add(dot);
-            }
-        }
-
-        private void UpdateScannedMap()
-        {
-            var newPoints = lidar.ScanPoints(map, robot.X, robot.Y, robot.Angle);
-
-            foreach (var point in newPoints)
-            {
-                bool alreadyExists = scannedPoints.Exists(p =>
-                    Math.Abs(p.X - point.X) < 0.02 && Math.Abs(p.Y - point.Y) < 0.3);
-
-                if (!alreadyExists)
-                {
-                    scannedPoints.Add(point);
-                }
             }
         }
 
@@ -241,37 +317,6 @@ namespace LidarRobotSimulator
                 };
 
                 MainCanvas.Children.Add(line);
-            }
-        }
-
-        private void PauseButton_Click(object sender, RoutedEventArgs e)
-        {
-            isPaused = !isPaused;
-            PauseButton.Content = isPaused ? "Продолжить" : "Пауза";
-        }
-
-        private void ResetButton_Click(object sender, RoutedEventArgs e)
-        {
-            robot = new Robot(2, 2, 0);
-            scannedPoints.Clear();
-            trajectory.Clear();
-            trajectory.Add(new Point(robot.X, robot.Y));
-            isPaused = false;
-            PauseButton.Content = "Пауза";
-
-            DrawScene();
-        }
-
-        private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (robot != null)
-            {
-                robot.Speed = e.NewValue;
-            }
-
-            if (SpeedLabel != null)
-            {
-                SpeedLabel.Text = e.NewValue.ToString("F1");
             }
         }
     }
