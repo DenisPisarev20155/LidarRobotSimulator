@@ -28,12 +28,24 @@ namespace LidarRobotSimulator
         private const int CellSize = 40;
         private bool isPaused = false;
         private bool mapDrawn = false;
+        private const double RobotBodyWidthRatio = 0.87;
+        private const double RobotBodyHeightRatio = 1.14;
+        private const double CollisionMargin = 0.4;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            map = GridMap.LoadFromFile("Maps/map1.txt");
+            try
+            {
+                map = GridMap.LoadFromFile("Maps/map2.txt");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось загрузить карту: {ex.Message}");
+                map = new GridMap(10, 6);
+                map.GenerateSampleObstacles();
+            }
             robot = new Robot(2, 2, 0);
             lidar = new Lidar(10, 72);
 
@@ -83,7 +95,7 @@ namespace LidarRobotSimulator
 
         private bool CheckCollision(double x, double y)
         {
-            double margin = 0.4;
+            double margin = CollisionMargin;
 
             double[] checkX = { x - margin, x + margin };
             double[] checkY = { y - margin, y + margin };
@@ -187,8 +199,8 @@ namespace LidarRobotSimulator
             double centerX = robot.X * CellSize;
             double centerY = robot.Y * CellSize;
 
-            double bodyWidth = CellSize * 0.87;
-            double bodyHeight = CellSize * 1.14;
+            double bodyWidth = CellSize * RobotBodyWidthRatio;
+            double bodyHeight = CellSize * RobotBodyHeightRatio;
             double wheelWidth = CellSize * 0.14;
             double wheelHeight = CellSize * 0.56;
             double hubRadius = CellSize * 0.12;

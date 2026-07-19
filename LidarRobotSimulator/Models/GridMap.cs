@@ -65,9 +65,19 @@ namespace LidarRobotSimulator.Models
 
         public static GridMap LoadFromFile(string path)
         {
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException($"Файл карты не найден: {path}");
+            }
+
             string[] lines = File.ReadAllLines(path);
             int height = lines.Length;
             int width = lines.Length > 0 ? lines[0].Length : 0;
+
+            if (width == 0 || height == 0)
+            {
+                throw new InvalidDataException("Файл карты пустой или имеет неверный формат");
+            }
 
             var map = new GridMap(width, height);
 
