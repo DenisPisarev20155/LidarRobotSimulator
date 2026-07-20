@@ -38,7 +38,7 @@ namespace LidarRobotSimulator
 
             try
             {
-                map = GridMap.LoadFromFile("Maps/map2.txt");
+                map = GridMap.LoadFromFile("Maps/map1.txt");
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace LidarRobotSimulator
                     break;
             }
 
-            if (CheckCollision(robot.X, robot.Y))
+            if (CheckCollision(robot.X, robot.Y, robot.Angle))
             {
                 robot.SetPosition(oldX, oldY);
             }
@@ -89,24 +89,34 @@ namespace LidarRobotSimulator
             }
 
             DrawScene();
-
             e.Handled = true;
         }
 
-        private bool CheckCollision(double x, double y)
+        private bool CheckCollision(double x, double y, double angle)
         {
-            double margin = CollisionMargin;
+            double buffer = 1.0;
+            double halfWidth = RobotBodyWidthRatio / 2 * buffer;
+            double halfHeight = RobotBodyHeightRatio / 2 * buffer;
 
-            double[] checkX = { x - margin, x + margin };
-            double[] checkY = { y - margin, y + margin };
+            double radians = (angle + 90) * Math.PI / 180.0;
+            double cos = Math.Cos(radians);
+            double sin = Math.Sin(radians);
 
-            foreach (var cx in checkX)
+            var corners = new (double dx, double dy)[]
             {
-                foreach (var cy in checkY)
-                {
-                    if (!map.IsInsideBounds(cx, cy) || !map.IsFree((int)cx, (int)cy))
-                        return true;
-                }
+        (-halfWidth, -halfHeight),
+        (halfWidth, -halfHeight),
+        (-halfWidth, halfHeight),
+        (halfWidth, halfHeight)
+            };
+
+            foreach (var corner in corners)
+            {
+                double worldX = x + corner.dx * cos - corner.dy * sin;
+                double worldY = y + corner.dx * sin + corner.dy * cos;
+
+                if (!map.IsInsideBounds(worldX, worldY) || !map.IsFree((int)worldX, (int)worldY))
+                    return true;
             }
 
             return false;
